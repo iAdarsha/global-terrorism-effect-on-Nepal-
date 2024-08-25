@@ -1,0 +1,381 @@
+---
+title: "secondmilestone"
+author: "Adarsha Khadka"
+date: '2022-04-20'
+output: html_document
+---
+
+# **Introduction**
+Data is considered as vital organ in any sector. Different sectors can perform data analysis and visualization for different purposes. For instance, business organizations can perform it to maximize profit similarly government organization can perform it to visualize demographic differences. This project is focused on the analysis and visualization of terrorist attacks and killings in Nepal from the duration 1985-2017.
+Dataset I have chosen for this project is “The Global Terrorism Database (GTD)” which is an open-source dataset available in kaggle.com. during this project i will not only visualize the terrorist attacks until now, but will also try to precisely predict future attacks during machine learning techniques. I will be mostly focused on analysing two things as output variables: first: number of attacks, second: no of killings and casualties.
+
+# Aim
+The main aim of this project is to analyse Nepali terrorism data and interpret different results.
+
+# Objectives
+  1. To understand the dataset and its attributes
+  2. To perform cleansing and necessary manipulations to the data.
+  3. To perform initial data analysis such as summary statistics
+  4. To further explore and visualize data using different graphs and  R libraries such as ggplot2
+  5. To perform statistics testing to the data
+  6. To implement machine learning techniques to the dataset
+  
+# **Data Understanding**
+“The Global Terrorism Database (GTD)” is the dataset I will be analysing during this project. This dataset contains information about terrorists’ attacks all around the world in the duration between 1970 and 2017. The dataset contains 181691 rows and 130 columns that contains information such as date, time, location, weapons, places of activity etc.   During this report, I will only be focusing on analyzing and visualizing terrorist attacks in Nepal in the specified duration by retrieving data related to the country from the existing dataset.
+I will be looking at the killings, the injuries caused by attacks as well as frequencies of attacks from 80's untill 2017. The evolution of terrorist groups and attacks' actions over time in Nepal will also be analysed. From the text analysis perspective, motive column in the dataset seems to standout from text analysis. Similarly, I will also be looking at perpetrators' community and ethnicity, the geographical area where the attacks took place. 
+I will be visualizing the the terrorists attacks in detail during this project. Data will be plotted in histogram, bar graphs, trees, line diagrams corrplot etc. 
+
+# Characterstics of attributes
+The dataset contains 135 columns however we will not look into all the attributes during this project. Attributes as well as their characterstics are listed below:
+  1. "year": A continues variable that represents the year of the attack taken place.
+  2. "month": A categorical variable that represents the month of the attack taken place.
+  3. "day" : A categorical variable that represent the day of the attack taken place
+  4. "dev_region": A categorical variable that represents the development region where the attack took place          
+  5. "city": A string variable denoting location where the attack took place.                
+  6. "latitude": Continues variable denoting latitude of specific location of the attack.           
+  7. "longitude": Continues variable denoting longitude of specific location of the attack.            
+  8. "attack_state": Binary variable that represents the state of the attack whether it was success or failure
+  9. "attacktype": Categorical variable representing the type of attack. it contains values like (bombing, explosion etc)
+  10. "target_sector": Categorical variable representing the target of the attack. values like government sector, business comes under this topic.    
+  11. "target": Specific target of a target sector.
+  12. "attacker": The group name which caused the attack.            
+  13. "weapon": Categorical variable representing which type of weapons were used in that attack. weapons such as gernades, explosives are stored in this variable             
+  14. "no_of_kills": A continues variable representing Number of people killed during that attack.
+  15. "no_of_injured": A continues variable representing Number of people injured during that attack.
+  16: "motive": String variable representing motive for the attack.
+
+
+# **Data Preparation**
+First of all, I set the working directory and installed and imported libraries namely: dplyr, ggplot2, treemap, corrplot, plotly, leaflet, caret, e1071, tm, tidytext and wordcloud. this libraries will help to manipulate, analyse, visualize and predict the different state of the project.
+
+```{r message=FALSE}
+#setting working directory
+setwd("D:/coursework")
+#importing libraries
+library(dplyr)
+library(ggplot2)
+library(treemap)
+library(corrplot)
+library(plotly)
+library(leaflet)
+library(caret)
+library(e1071)
+library(tm)
+library(tidytext)
+library(wordcloud)
+
+```
+
+After all these dataset have been imported, the dataset file has been loaded in the system using read.csv() method. I have confirmed if the dataset has been loaded or not by displaying the dimension of the dataset using dim() method.
+
+```{r input_file, include=TRUE}
+  world_terrorism_df <- read.csv("globalterrorismdb_0718dist.csv")
+  dim(world_terrorism_df)
+```
+
+# **Data Transformation and Cleansing**
+After the data has been properly loaded the next step would be the transformation the data. during this process the huge dataset has been filtered to get data related to nepal only. similarly columns are also removed and only important ones are filtered and kept. Null fields are handled using different techniques.
+
+# Filtering Nepal's data from world's data
+In order to filter data related to only Nepal, firstly I converted all the country text field in the dataset to small letter and filtered the data by name of the country ("Nepal").
+
+```{r echo=TRUE, eval=TRUE}
+#changing countryname to small case
+world_terrorism_df$country_txt <- tolower(world_terrorism_df$country_txt)
+#filtering data belongs to nepal
+nepalTerror_df <- world_terrorism_df[world_terrorism_df$country_txt %in% 'nepal',]
+
+```
+
+# Filtering columns and variables for analysis and visualization
+After filtering rows, columns are next as there are more than 100 columns which are not required in this project. In order to get data related to column I first created vector of columns that I want to keep. then i filtered the data with those columns and finally mapped the existing column names to new one with the help of another vector. lastly the row key has been reset and structure of the dataframe has been displayed using str() function.
+
+```{r}
+#filtering columns
+col_selections <- c('iyear', 'imonth', 'iday', 'provstate', 'city', 'latitude', 'longitude', 'success',
+                    'attacktype1_txt', 'targtype1_txt', 'targsubtype1_txt', 'gname',
+                    'weaptype1_txt', 'nkill', 'nwound', 'motive')
+terror_df <- nepalTerror_df[,col_selections]
+colnames(terror_df) <- c('year', 'month', 'day', 'dev_region', 'city', 'latitude', 'longitude', 'attack_state',
+                         'attacktype', 'target_sector', 'target', 'attacker',
+                         'weapon', 'no_of_kills', 'no_of_injured', 'motive')
+row.names(terror_df) <- NULL
+str(terror_df)
+
+```
+
+# handling null fields
+For different variable null fields have been handled by different methods. for number of kills and number of injuries all the null field have been transformed into 0, for motive null fields have been transformed into "Unknown" and for latitudes and longitudes no transformation have been performed. finally empty fields are visualized with the help of colsum() and is.na() methods.
+
+```{r}
+terror_df$no_of_kills[is.na(terror_df$no_of_kills)] <- 0
+terror_df$no_of_injured[is.na(terror_df$no_of_injured)] <- 0
+terror_df$motive[is.na(terror_df$motive)] <- "Unknown"
+colSums(is.na(terror_df))
+
+```
+
+# **Initial Data Analysis**
+During this stage general data analysis has been berformed. summary statistics of the variables in dataset has been calculated initially. Similarly, several univariate analysis has been performed. 
+
+# Summary Statistics
+Summary statistics ia the first step after data transformation. For this stage, summary statistics (mean median, quartiles, mode) are calculated for different numerical fields and structure of character fields are demonstrated.
+```{r}
+summary(terror_df)
+table(terror_df$year)
+```
+# Boxplot to visualize distribution of year
+
+In order to visualize the distribution of year, I have implemented the boxplot which is illustrated below:
+
+```{r}
+#boxplot 
+
+boxplot(terror_df$year)
+```
+The above box plot illustrates the distribution of year in the dataset. Y axis indicates year and x axis indicated the frequency. line between the box represents the dense distribution indicating the most data are around of 2010. similarly, circles outside the bottom line is considered as outlier. In order to find those outlier i have filtered the dataset and the result is presented below:
+```{r}
+terror_df %>% filter(year < 1992) %>% select(year, city, attack_state, no_of_kills)
+```
+The above dataframe illustrated there lies 10 outliers in term of year of the attack. Most of those attacks occurred in 1985 and one occurred in 1991. 
+
+# Histogram Plot
+After demonstration of box plot to visualize the distribution of years i have also visualized it with the help of histogram plot.
+```{r}
+#histogram
+#hist(terror_df$year, main="Histogram of year distribution", xlab="Years")
+#barplot
+#barplot(table(terror_df$year))
+ggplot(terror_df, aes(year))+geom_histogram(bins="30")
+```
+The above diagram illustrates the distribution of year with the frequency of attack. On the y axis frequency count is presented and on the x axis the year is presented. The diabra seems increment in nature, meaning the attacks by terrorists are increasing year by year in Nepal. Some of the years can be said as outlier as there are less attack count in preceeding year. In 90s the terrorist attacks were very minimum around 0 and is increasing upto around 250 attacks.
+Similiarly I have plotted the log of number of people died in the attacks. however the histogram below seems to be opposite of above as in diminishing nature.
+```{r}
+hist(log(terror_df$no_of_kills))
+```
+The distribution of log of number people died is plotted in the above histogram. according to the graph, most of the attacks had 0 casualties meaning very less people died in most of the attacks and in very less attacks more people have died. I have logged the value for plotting in the histogram as the original value was not giving proper insight and logging the value doesnot change visualization only makes it easier.
+
+
+# **Data Exploration and Visualization**
+# Correlation between variables
+The first phase of data exploration is correlation. correlation between variables can be carried out with the help of cor() function the below code demonstrates the correlation between variables, attacktype and weapontype.
+```{r}
+#Correlation
+cor(nepalTerror_df$attacktype1, nepalTerror_df$weaptype1)
+```
+The result above is around 0.7 meaning attack type is somewhat related to weapon type but there is no strong relationship. rather than staying with one correlation lets visualize it using corrplot diagram.
+```{r}
+#Corrplot
+terrorCor <- nepalTerror_df[,c("iyear","imonth","iday", 'latitude', 'longitude', 'success',
+                               'attacktype1', 'targtype1', 'targsubtype1', 'natlty1',
+                               'weaptype1', 'nkill', 'nwound')]
+terrorCor <- na.omit(terrorCor)
+correlations <- cor(terrorCor) #correlation
+corrplot::corrplot(correlations, method="circle") #heatmap
+```
+Correlation can range from -1 to 1. The above figure illustrates the correlation between different variables. Here, both the axes have all the variables demonstrating relation to each others with the help of different colors. When the number is closer to 1 or -1 there lies the stronger correlation. Similarly, number close to 0 has very less to no correlation. On positive correlation one tends to increase with another and on negative correlation one decreases with increase in other. From the above diagram, we can visualize, number of people killed in attack has strong positive relation with the number of people injured and latitude has strong negative correlation with longitude. similarly attacktype seems to have somewhat of positive relation with weapon type. Number of kill doesnot seems to have correlation with weapon type meaning change on one doesnot affect another in most cases.
+
+# Scatter Plot
+The next step would be scatter plot after demonstrating the correlation and heatmap. Scatter plot takes two variables as input and plots point in the graph. Similarly in this context we have taken year and number of people killed and plotted in scatterplot below: 
+```{r}
+#Kills per year
+plot(terror_df$year, log(terror_df$no_of_kills), main="Years vs kills", xlab = "Year", ylab = "Number of kills")
+```
+The above diagram demonstrates log of number of people killed in different attacks per year from 1985-1017. As per the diagram, initially very less number of people used to die at around 1985 which gradually increased upto 2005 and diminished again until 2015. However, the direction is not stable since the correlation between the variables is not significant. 
+
+With the help of ggplot we can plot 4 different types of variables at a time. two on the axeses, one as color and other as shape. Now lets plot number of kills per year with month and attack state as well to scatter plot.
+```{r}
+ggplot(terror_df, aes(year, log(no_of_kills), col=as.factor(month), shape=as.factor(attack_state)))+geom_point()
+
+```
+The above diagram demonstrates log of number of people killed in different attacks per year from 1985-1017 in different month on succeeded or failed attacks. As per the diagram, initially very less number of people used to die in succeeded attack on middle months. coming to 2000s most attacks seems to occur in late months and maximum people are died from succeeded attack. People doesnot seems to be killed by failed attack except one people died in february 2012.
+
+
+Now, lets plot attacks per year in point graph with the line. For this I grouped the attacks by year and retrieved frequency of attacks per year and ploted it using ggploot geom_point() and stat_smooth() method.
+```{r}
+#attacks per year
+attacks_by_year <- terror_df %>% 
+  group_by(year) %>% 
+  summarise(count=n())
+ggplot(attacks_by_year, aes(x=year, y=count))+geom_point()+stat_smooth()
+
+```
+The above diagram illustrates the frequency of attacks occurred in Nepal. As per the diagram we can see the frequency of attack is increasing since beginning until around 2005, diminished little until around 2010 and increased again. as per the diagram we may assume that terrorist attacks will go up in upcoming days as well.
+
+# Bar Graph
+#  Yearwise terrorist attacks by ATTACK type
+Now lets perform real visualization. Here i am visualizing the frequency of terrorist attacks on Nepal by the type of attack. I will plot year and frequency of attacks on x and y axis respectively and fill the color by the type of attack.
+```{r}
+ggplot(data=terror_df, aes(x=year,fill=attacktype)) + geom_bar() + ggtitle("Yearly terrorist attacks by attack type")+         
+  labs(x = "Years", y = "Number of Attacks")
+```
+The above diagram demonstrates the number of attacks performed according to type of attack. On the X axis lies the year of attack, on the y axis lies the frequency of the attack and different colors are plotted on graph for attack type. as per the diagram, most of the attacks performed in nepal seems to be bombing explosion which is increasing in nature in latest years. similarly armed assault comes second, kidnap, assasinations shares some share and hijacking and unarmed assaults are very little. 
+
+# Yearwise terrorist attacks by TARGET type
+Now lets visualize the frequency of terrorist attacks on Nepal by the target type. I will plot year and frequency of attacks on x and y axis respectively and group the plots by the target type.
+```{r}
+clean_terror <- terror_df[which(terror_df$target_sector !='.'), ] 
+ggplot(clean_terror, aes(x = year))+ labs(title =" Terrorist attacks on Nepal by TARGET type", x = "Years", y = "Number of Attacks") + 
+  geom_bar(colour = "grey19", fill = "tomato3") + facet_wrap(~target_sector, ncol = 4) + theme(axis.text.x = element_text(hjust = 1, size = 12))+
+  theme(strip.text = element_text(size = 16, face = "bold"))
+```
+The above diagram demonstrates the number of attacks performed with respect to target type. On the X axis lies the year of attack, on the y axis lies the frequency of the attack and different groups are plotted on graph for target type. as per the diagram, most of the attacks performed in nepal seems to be targeting government which is increasing state. similarly citizens comes second, business, educational institutes, political parties, transportation, military shares some share and attack on utilities and ngos seems to be very little. 
+
+# Yearwise terrorist attacks by WEAPON type
+For visualizing the frequency of terrorist attacks on Nepal by the weapon type. I will plot year and frequency of attacks on x and y axis respectively and fill the colors by the weapon type.
+```{r}
+ggplot(data=terror_df, aes(x=year,fill=weapon)) + 
+  geom_bar() + ggtitle("Yearly terrorist attacks by WEAPON type")+ 
+  labs(x = "Years", y = "Number of Attacks")
+```
+The above diagram demonstrates the number of attacks performed according to type of weapon. On the X axis lies the year of attack, on the y axis lies the frequency of the attack and different colors are plotted on graph for weapon type. as per the diagram, most of the attacks performed in nepal seems to be by explosives,  which is in increasing state in latest years. similarly firearms comes second but are in diminising state. incendiary is in increasing state and contains thirs share in the weapon type. Chemical, Mele, Sabtotage Equipment shares very little share. 
+
+
+# Number of killing per year
+After analyzing the frequency of attack, now i will analyze and visualize the killings variable in dataset. Firstly I have plotted treemap with the number of killing per year. For this i have used treemap library and filtered dataset with number of kills greater than 1 and plotted into the graph.
+```{r}
+dfk <- terror_df %>% filter(no_of_kills > 0)
+treemap(dfk, 
+        index=c("year"),
+        vSize = "no_of_kills",  
+        palette = "Reds",  
+        title="Killings in Nepal Terrorism by year", 
+        type="value",
+        title.legend = "Number of killed",
+        fontsize.title = 14 
+)
+```
+The above treemap figure demonstrates the number of killings per year. in the above figure darker the box is the more number of peoples are killed. Visualizing the above diagram we can gain insight that maximum number of people were killed by terrorist attack in 2007. similarly, 2005 comes second, 2004, 2008, 2006 comes afterwards. there seems to be very little to no kills in earlier years in 80s and 90s. Most people seems to be killed in terrorist attack during mid 2000s.
+
+# Number of killing per city
+Now lets analyze and visualize the killings variable in dataset as per the city of nepal. Firstly I have plotted treemap with the number of killing per city.I have filtered dataset with number of kills greater than 1 per city and plotted into the graph.
+```{r}
+treemap(dfk, 
+        index=c("city"), 
+        vSize = "no_of_kills",  
+        palette = "Reds",  
+        title="Killings in Nepal Terrorism by city", 
+        fontsize.title = 14,
+        type="value",
+        title.legend = "Number of killed",
+
+)
+```
+
+The above treemap figure demonstrates the number of killings by city. In this figure darker the box is the more number of peoples are killed. Visualizing the above diagram we can gain insight that maximum number of people were killed by terrorist attack in Kathmandu district similarly, Dhanusha comes second, Shaptari, Siraha, Baara, Dhanusha comes afterwards. there seems to be very little to no kills in earlier years in 80s and 90s. Most people seems to be killed in western cities of Nepal except for Rolpa district as per the diagram.
+
+# Number of killing in Nepal yearly by terrorist group
+The most important factor is which terrorist group is responsible for killing. Here I am analysing the number of killing per year as per terrorist group. For this I have grouped the dataframe by year and attacker to find sum of total people killed per group. Then I arranged the grouped dataframe sorting by kill count and taken top 40 then I filtered the required columns and plotted in Line plot in addition to point plot and theme_bw() function.
+```{r}
+dfyrk <- dfk %>% group_by(year,attacker) %>% 
+  summarise(no_of_kills = sum(no_of_kills)) %>% 
+  ungroup()
+dfyrku <- head(arrange(dfyrk,desc(no_of_kills)), n = 40)
+colnames(dfyrku) <- c("Year","attacker","no_of_kills")
+ggplot(data = dfyrku, aes(x = Year, y = no_of_kills, colour = attacker))+geom_line() + geom_point() + theme_bw()
+```
+
+The above multi line figure demonstrates the number of killings by terrorist group per year. In this figure line of different colors denotes the number of people killed by different group of terrorists. On the x axis lies the year and on the Y axis there is number of kills. Visualizing the above diagram we can gain insight that maximum number of people were killed by Communist party of nepal - Maoist. similarly, moist comes second in killing, United Liberation Torchbearers Forces, and other organizations  comes afterwards. The above figure also demonstrates that the maximum number of people were killed by Communist Party on Nepal - Maoist 2005.
+
+# Number of killing in Nepal by year and dev region
+Now I will analyze and visualize the Number of killing per year in each development region with the help of line graph. Firstly I have grouped the dataframe by year and development region and retrieved sum of total kills in each group than I have plotted the result in line diagram.
+```{r}
+dfyr <- dfk %>% group_by(year,dev_region) %>% summarise(no_of_kills = sum(no_of_kills)) %>% ungroup()
+colnames(dfyr)<-c("Year","dev_region","no_of_kills")
+ggplot(data = dfyr, aes(x = Year, y = no_of_kills, colour = dev_region)) +       
+  geom_line() + geom_point() + theme_bw()
+```
+
+The above multi line figure demonstrates the number of killings by development region per year. In this figure line of different colors denotes the number of people killed from different development region. On the x axis lies the year. Visualizing the above diagram we can gain insight that maximum number of people were killed by terrorist attack in Central development region similarly, Mid western development region comes second, Far western, mid western, Western development regions comes afterwards. there seems to be little number of people killed in western and eastern development region as per the diagram. The above figure also demonstrates that the maximum number of people died in Central Development region in year around 2005 by terrorist attack. 
+
+
+# visualization of terrorism in Nepal according to targets, and total casualities and injuries.
+For Dynamic visualization I have choosen Plotly library. In this stage, I have visualized the terrorism in Nepal with respect to target types, total kills and injuries. Before visualizing the targets are trimmed and regrouped meaning, I have removed null data from the dataframe, Then I grouped the Similar target sector. I converter the target then to factor. After trimming and regrouping the data i have plotted into the ggplotly() method of plotly library.
+```{r}
+terror_df_empty_removed <- terror_df[complete.cases(terror_df),]
+terror_df_empty_removed$target_sector <- as.character(terror_df_empty_removed$target_sector)
+govIndx <- which(terror_df_empty_removed$target_sector %in% c("Government (General)","Government (Diplomatic)"))
+terror_df_empty_removed[govIndx,'target_sector'] <- 'Government'
+
+govIndx <- which(terror_df_empty_removed$target_sector %in% c('Transportation','Airports & Aircraft'))
+terror_df_empty_removed[govIndx,'target_sector'] <- 'Transportation'
+
+govIndx <- which(terror_df_empty_removed$target_sector %in% c('Police','Military'))
+terror_df_empty_removed[govIndx,'target_sector'] <- 'ArmedForces'
+
+govIndx <- which(terror_df_empty_removed$target_sector %in% "Private Citizens & Property")
+terror_df_empty_removed[govIndx,'target_sector'] <- 'Citizens'
+
+govIndx <- which(terror_df_empty_removed$target_sector %in% c("Food or Water Supply","Telecommunication", "Utilities"))
+terror_df_empty_removed[govIndx,'target_sector'] <- 'Infrastructure'
+
+govIndx <- which(terror_df_empty_removed$target_sector %in% c("Violent Political Party","Terrorists/Non-State Militia"))
+terror_df_empty_removed[govIndx,'target_sector'] <- 'Rebel Party'
+
+govIndx <- which(terror_df_empty_removed$target_sector %in% "Religious Figures/Institutions")
+terror_df_empty_removed[govIndx,'target_sector'] <- 'Religious'
+
+govIndx <- which(terror_df_empty_removed$target_sector %in% "Journalists & Media")
+terror_df_empty_removed[govIndx,'target_sector'] <- 'Media'
+
+govIndex <- which(terror_df_empty_removed$target_sector %in% "Educational Institution")
+terror_df_empty_removed[govIndx,'target_sector'] <- 'Education'
+
+terror_df_empty_removed$target_sector <- as.factor(terror_df_empty_removed$target_sector)
+
+tempData <- terror_df_empty_removed %>% select(target_sector, no_of_kills,no_of_injured) %>% group_by(target_sector) %>% summarize(Casualties = sum(no_of_kills), attactCount= n(), Injured = sum(no_of_injured))
+tempData <- tempData[order(-tempData[,4]),]
+
+seque <- seq(length(tempData$target_sector),1)
+tempData <- cbind(tempData, size=seque)
+
+
+plot <- ggplot(tempData, aes(x=Casualties, y=Injured, color=target_sector)) + geom_point(size=tempData$size, alpha=0.6)
+plot <- plot + labs(title='Total  injuries/kills according to target sector.', x='Total  Kills', y='Total Injuried')
+plot <- plot +  guides(color=FALSE) 
+plot <- ggplotly(plot)
+hide_legend(plot)
+```
+As per the above dynamic graph Government sector bears most injuries and military sectors bears most kills. In this figure Dots of different colors denotes the different targeted sector  the size differs with the causality is higher or lower. On the x axis lies total kills and on the y axis lies the total injuries. Visualizing the above diagram we can gain insight that maximum number of people were killed and injured by terrorist attack in military sector similarly, Government, Citizen, Transportation, Rebel party, Business, Religious sectors comes second and so on respectively. There seems to be very little causality in Infrastructure sector with only 1 killed and 4 injured.. The above figure also demonstrates that the maximum number (893) People have died from military sector and 596 prople were injured from government sector. 
+
+
+
+
+# **Statistical Testing**
+# T-test
+
+Setting up Null Hypothesis
+  ->There is no significant difference in number of people killed by firearms and explosives.
+Seting up data for the T-Test
+  ->Filtering the data with weapon typ either firearms or explosives only and selecting weapon and number of kills from the dataframe.
+  
+```{r}
+kill_by_weapon <- terror_df %>%
+  select (weapon, no_of_kills) %>%
+  filter(tolower(weapon)=="firearms" | tolower(weapon)=="explosives")
+```
+
+Applying T-Test to resulted dataframe
+
+```{r}
+t.test(data =kill_by_weapon, no_of_kills ~ weapon )
+```
+As per the above interpretation of result the p-value is very very close to zero meaning that our null hypothesis is unbelievably unlikely, I rejected the null hypothesis i.e. the difference between the means of peoples killed by firearms and explosives is 0. and except the only alternative i.e. the difference between them is not 0 but there is real difference. Similarly confidence interval is 95% for the difference in between -10.8492428 and  -0.6443782
+
+
+
+For graphically representing word frequency I have plotted motive text to wordcloud. As per the above wordcloud diagram, as per the above wordcloud we can visualize the motive of the terrorist attacks. elections, communists, strike, maoist, party, parliamentary etc seems to be the weighty words related to the motive of attack.
+
+# **Conclusion**
+Data is considered as vital property to any sector. While analyzing the dataset of a global terrorism index being based on data of Nepal in  this coursework, most importantly I got to know the importance of data, How they can be vital for any organization. I got understanding of  different data visualization and analysis techniques that can be implemented on R programming to interpret and visualize certain results. similarly how those data can be used to predict future events. These tools and techniques could be helpful in further decision making.
+
+This project helped me to learn about R programming its libraries such as dplyr, ggplot2, treemap, corrplot, plotly etc. First in this project I got to understand dataset of my choice "Global Terrorism Index". Then i loaded the dataset, I got understanding of dataframes. Then, performed  transformation and cleansing where i realized as big dataset containing 18000 data and 135 columns can be broken to get only needed fields. Manipulation and visualization of dataset also taught me that how python can be useful for analyzing huge dataset. I carried out findings from the dataset, transformed certain variables to binary and some to ordinal. I also created temporary columns 
+which could further be useful for visualization. I got to know how summary statistics such as mean, median etc can be calculated from such a huge dataset in one line.
+
+I got understanding of correlation of variables, how they could be related to each other and how 
+can we graphically represent correlation of variables using corrplot. Knowledge on data 
+visualization was also gained while graphically representing different variables with the help of 
+histogram plots, boxplots, graphs etc. I also got to know abou the T-Test statistical testing method, several machine learning techniques such as Linear Regression, Logistic Regression, Text Analysis etc. Which helped to make predictions and analyse texts of the dataset.. I also came to know about the  importance of data grouping, data replacing, data removing and data analysis and visualization as a whole. 
+
+Lots of challenges were faced during this process but eventually all the challenges were surpassed 
+which not only increased my confidence but also helped to improve my problem tackling skill. 
