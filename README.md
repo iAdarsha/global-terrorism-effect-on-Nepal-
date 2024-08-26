@@ -1,7 +1,5 @@
 # global-terrorism-effect-on-Nepal-
 
-Adarsha Khadka
-2022-04-20
 Introduction
 Data is considered as vital organ in any sector. Different sectors can perform data analysis and visualization for different purposes. For instance, business organizations can perform it to maximize profit similarly government organization can perform it to visualize demographic differences. This project is focused on the analysis and visualization of terrorist attacks and killings in Nepal from the duration 1985-2017. Dataset I have chosen for this project is “The Global Terrorism Database (GTD)” which is an open-source dataset available in kaggle.com. during this project i will not only visualize the terrorist attacks until now, but will also try to precisely predict future attacks during machine learning techniques. I will be mostly focused on analysing two things as output variables: first: number of attacks, second: no of killings and casualties.
 
